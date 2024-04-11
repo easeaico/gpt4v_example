@@ -1,38 +1,40 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
-	"os"
 
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/sashabaranov/go-openai"
 )
 
 var (
 	openaiToken string
-	imageFile   string
 	chatMsg     string
 )
 
 func init() {
 	flag.StringVar(&openaiToken, "t", "", "Openai API Token")
-	flag.StringVar(&imageFile, "f", "", "image file to upload")
 	flag.StringVar(&chatMsg, "m", "", "chat message to describe task")
 }
 
 func main() {
 	flag.Parse()
 
-	f, err := os.Open(imageFile)
+	ctl := NewScreenController(0, image.Rect(0, 25, 1050, 1100))
+	img, err := ctl.TakeScreenshot()
 	if err != nil {
-		fmt.Printf("open image file error: %v\n", err)
+		fmt.Printf("take screenshot error: %v\n", err)
 		return
 	}
-
-	data, err := io.ReadAll(f)
+	var b bytes.Buffer
+	png.Encode(&b, img)
+	data, err := io.ReadAll(&b)
 	if err != nil {
 		fmt.Printf("read image data error: %v\n", err)
 		return
@@ -40,7 +42,7 @@ func main() {
 
 	e64 := base64.StdEncoding
 	imageData := e64.EncodeToString(data)
-	urlData := fmt.Sprintf("data:image/jpeg;base64,%s", imageData)
+	urlData := fmt.Sprintf("data:image/png;base64,%s", imageData)
 
 	client := openai.NewClient(openaiToken)
 	resp, err := client.CreateChatCompletion(
