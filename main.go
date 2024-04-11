@@ -1,16 +1,10 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/base64"
 	"flag"
-	"fmt"
-	"image"
-	"image/png"
-	"io"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/go-vgo/robotgo"
+	"github.com/vcaesar/imgo"
 )
 
 var (
@@ -26,52 +20,16 @@ func init() {
 func main() {
 	flag.Parse()
 
-	ctl := NewScreenController(0, image.Rect(0, 25, 1050, 1100))
-	img, err := ctl.TakeScreenshot()
-	if err != nil {
-		fmt.Printf("take screenshot error: %v\n", err)
-		return
-	}
-	var b bytes.Buffer
-	png.Encode(&b, img)
-	data, err := io.ReadAll(&b)
-	if err != nil {
-		fmt.Printf("read image data error: %v\n", err)
-		return
-	}
+	img := robotgo.CaptureImg(10, 10, 300, 300)
+	imgo.Save("weixin.png", img)
 
-	e64 := base64.StdEncoding
-	imageData := e64.EncodeToString(data)
-	urlData := fmt.Sprintf("data:image/png;base64,%s", imageData)
-
-	client := openai.NewClient(openaiToken)
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT4VisionPreview,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role: openai.ChatMessageRoleUser,
-					MultiContent: []openai.ChatMessagePart{
-						{
-							Type: openai.ChatMessagePartTypeText,
-							Text: chatMsg,
-						},
-						{
-							Type: openai.ChatMessagePartTypeImageURL,
-							ImageURL: &openai.ChatMessageImageURL{
-								URL: urlData,
-							},
-						},
-					},
-				},
-			},
-		},
-	)
-	if err != nil {
-		fmt.Printf("ChatCompletion error: %v\n", err)
-		return
-	}
-
-	fmt.Println(resp.Choices[0].Message.Content)
+	/*
+		gpt4Client := NewGpt4Client(openaiToken)
+			resp, err := gpt4Client.AskGPT4V(img, chatMsg)
+			if err != nil {
+				fmt.Printf("ask gpt4 error: %v\n", err)
+			} else {
+				fmt.Println(resp)
+			}
+	*/
 }
